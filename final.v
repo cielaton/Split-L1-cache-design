@@ -41,19 +41,21 @@ reg [11:0] D_Tag[0:SETS-1][0:I_WAYS-1];
 // Index (Set) bits for both caches
 reg [13:0] I_Index[0:SETS-1][0:D_WAYS-1];
 reg [13:0] D_Index[0:SETS-1][0:I_WAYS-1];
-
-reg [1:0] LRUbits_IC[0:SETS-1][0:I_WAYS-1];
-reg [2:0] LRUbits_DC[0:SETS-1][0:D_WAYS-1];
-
-reg [1:0] StoredMESI_IC[0:SETS-1][0:I_WAYS-1];
-reg [1:0] StoredMESI_DC[0:SETS-1][0:D_WAYS-1];
-
-reg StoredHit_IC[0:SETS-1][0:I_WAYS-1];
-reg StoredHit_DC[0:SETS-1][0:D_WAYS-1];
-
+// Bits indicate the LRU algorithm
+reg [1:0] I_LRUBits[0:SETS-1][0:I_WAYS-1];
+reg [2:0] D_LRUBits[0:SETS-1][0:D_WAYS-1];
+// Stored MESI value
+reg [1:0] I_storedMESI[0:SETS-1][0:I_WAYS-1];
+reg [1:0] D_storedMESI[0:SETS-1][0:D_WAYS-1];
+// Bit indicate the cache hit
+reg I_storedHit[0:SETS-1][0:I_WAYS-1];
+reg D_storedHit[0:SETS-1][0:D_WAYS-1];
+// Haven't known yet
 reg [1:0] StoredC_DC[0:SETS-1][0:D_WAYS-1];
 reg [1:0] StoredC_IC[0:SETS-1][0:I_WAYS-1];
 
+// Temporary address
 reg [ADDRESS_WIDTH-1:0] TempAddress;
+
 reg DONE;
 
