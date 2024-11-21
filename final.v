@@ -1,6 +1,7 @@
 // Useful constants
 `define EOF 32'h FFFF_FFFF
 `define NULL 0
+
 module split_L1_cache ();
 
   parameter SETS = 16384;  // 2 to the power of 14
@@ -44,15 +45,15 @@ module split_L1_cache ();
   // Bits indicate the LRU algorithm
   reg [1:0] I_LRUBits[0:SETS-1][0:I_WAYS-1];
   reg [2:0] D_LRUBits[0:SETS-1][0:D_WAYS-1];
-  // Stored MESI value
-  reg [1:0] I_storedMESI[0:SETS-1][0:I_WAYS-1];
-  reg [1:0] D_storedMESI[0:SETS-1][0:D_WAYS-1];
+  // stored MESI value
+  reg [1:0] I_StoredMESI[0:SETS-1][0:I_WAYS-1];
+  reg [1:0] D_StoredMESI[0:SETS-1][0:D_WAYS-1];
   // Bit indicate the cache hit
-  reg I_storedHit[0:SETS-1][0:I_WAYS-1];
-  reg D_storedHit[0:SETS-1][0:D_WAYS-1];
+  reg I_StoredHit[0:SETS-1][0:I_WAYS-1];
+  reg D_StoredHit[0:SETS-1][0:D_WAYS-1];
   // Haven't known yet
-  reg [1:0] StoredC_DC[0:SETS-1][0:D_WAYS-1];
-  reg [1:0] StoredC_IC[0:SETS-1][0:I_WAYS-1];
+  reg [1:0] I_StoredC[0:SETS-1][0:I_WAYS-1];
+  reg [1:0] D_StoredC[0:SETS-1][0:D_WAYS-1];
 
   // Temporary address
   reg [ADDRESS_WIDTH-1:0] TempAddress;
@@ -65,6 +66,31 @@ module split_L1_cache ();
   // Hit count
   real hitCount;
 
+  // Task to initilize all the register values
+  task initialize;
+    begin
+      // Fill up the data cache
+      for (i = 0; i < SETS; i = i + 1) begin
+        for (j = 0; j < I_WAYS; j = j + 1) begin
+          I_Valid[i][j] = 0;
+          I_Tag[i][j] = {12{1'b0}};
+          I_LRUBits[i][j] = 0;
+          I_StoredHit[i][j] = 0;
+          I_StoredC[i][j] = 2'bxx;
+          I_StoredMESI[i][j] = 0;
+        end
+        for (j = 0; j < D_WAYS; j = j + 1) begin
+          D_Valid[i][j] = 0;
+          D_Tag[i][j] = {12{1'b0}};
+          D_LRUBits[i][j] = 0;
+          D_StoredHit[i][j] = 0;
+          D_StoredC[i][j] = 2'bxx;
+          D_StoredMESI[i][j] = 0;
+        end
+        DONE = 1'b0;
+      end
+    end
+  endtask
 
   integer file;  // File descriptor
 
@@ -72,4 +98,8 @@ module split_L1_cache ();
     file = $fopen("./trace.txt", "r");
     $fclose(file);
   end
+
+
 endmodule
+
+
