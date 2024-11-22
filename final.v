@@ -1,8 +1,6 @@
 // Useful constants
 `define EOF 32'h FFFF_FFFF
 
-`include "set.v"
-
 module split_L1_cache ();
 
   parameter SETS = 16384;  // 2 to the power of 14
@@ -57,7 +55,7 @@ module split_L1_cache ();
   reg [1:0] D_StoredC[0:SETS-1][0:D_WAYS-1];
 
   // Temporary address
-  reg [ADDRESS_WIDTH-1:0] TempAddress;
+  reg [ADDRESS_WIDTH-1:0] tempAddress;
 
   reg DONE;
 
@@ -66,32 +64,6 @@ module split_L1_cache ();
 
   // Hit count
   real hitCount;
-
-  // Task to initilize all the register values
-  task initialize;
-    begin
-      // Fill up the data cache
-      for (i = 0; i < SETS; i = i + 1) begin
-        for (j = 0; j < I_WAYS; j = j + 1) begin
-          I_Valid[i][j] = 0;
-          I_Tag[i][j] = {12{1'b0}};
-          I_LRUBits[i][j] = 0;
-          I_StoredHit[i][j] = 0;
-          I_StoredC[i][j] = 2'bxx;
-          I_StoredMESI[i][j] = 0;
-        end
-        for (j = 0; j < D_WAYS; j = j + 1) begin
-          D_Valid[i][j] = 0;
-          D_Tag[i][j] = {12{1'b0}};
-          D_LRUBits[i][j] = 0;
-          D_StoredHit[i][j] = 0;
-          D_StoredC[i][j] = 2'bxx;
-          D_StoredMESI[i][j] = 0;
-        end
-        DONE = 1'b0;
-      end
-    end
-  endtask
 
   integer file;  // File descriptor
 
@@ -126,7 +98,7 @@ module split_L1_cache ();
           cacheReferences = cacheReferences + 1.0;
           cacheReads = cacheReads + 1;
 
-          // set();
+          set(tag, index, byteSelect);
 
         end
       endcase
@@ -136,6 +108,32 @@ module split_L1_cache ();
     $fclose(file);
 
   end
+
+  // Task to initilize all the register values
+  task initialize;
+    begin
+      // Fill up the data cache
+      for (i = 0; i < SETS; i = i + 1) begin
+        for (j = 0; j < I_WAYS; j = j + 1) begin
+          I_Valid[i][j] = 0;
+          I_Tag[i][j] = {12{1'b0}};
+          I_LRUBits[i][j] = 0;
+          I_StoredHit[i][j] = 0;
+          I_StoredC[i][j] = 2'bxx;
+          I_StoredMESI[i][j] = 0;
+        end
+        for (j = 0; j < D_WAYS; j = j + 1) begin
+          D_Valid[i][j] = 0;
+          D_Tag[i][j] = {12{1'b0}};
+          D_LRUBits[i][j] = 0;
+          D_StoredHit[i][j] = 0;
+          D_StoredC[i][j] = 2'bxx;
+          D_StoredMESI[i][j] = 0;
+        end
+        DONE = 1'b0;
+      end
+    end
+  endtask
 
   task set;
     input [TAG_WIDTH-1:0] tag;
@@ -159,6 +157,16 @@ module split_L1_cache ();
                   // MESI invalid status 
                   if (D_StoredMESI[index][i] == 2'b00) begin
                     D_StoredHit[index][i] = 0;
+                    D_StoredC[index][i] = 2'b11;
+                    // Report to monitor
+                    cacheMiss = cacheMiss + 1;
+                    // address to fetch data from L2 cache
+                    tempAddress = {tag, index, byteSelect};
+
+                    if (MODE == 1) $display("Read from L2 by address: %h", tempAddress);
+                    // Switch MESI state
+                    D_StoredMESI[index][i] = 2'b10;
+
                   end
                 end
               end
@@ -170,6 +178,28 @@ module split_L1_cache ();
 
   endtask
 
+  // LRU replacement strategy
+  task D_LRU_replacement;
+    begin
+      for (j = 0; j < D_WAYS; j = j + 1) begin
+        if (j == i) D_LRUBits[index][j] = D_LRUBits[index][i];
+        else if (D_LRUBits[index][j] <= D_LRUBits[index][i])
+          D_LRUBits[index][j] = D_LRUBits[index][j] + 1;
+      end
+      D_LRUBits[index][i] = 3'b000;
+    end
+  endtask
+
+  task I_LRU_replacement;
+    begin
+      for (j = 0; j < I_WAYS; j = j + 1) begin
+        if (j == 1) I_LRUBits[index][j] = I_LRUBits[index][i];
+        else if (I_LRUBits[index][j] <= I_LRUBits[index][i])
+          I_LRUBits[index][j] = I_LRUBits[index][j] + 1;
+      end
+      I_LRUBits[index][i] = 2'b00;
+    end
+  endtask
 endmodule
 
 
