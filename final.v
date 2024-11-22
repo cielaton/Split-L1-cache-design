@@ -1,12 +1,14 @@
 // Useful constants
 `define EOF 32'h FFFF_FFFF
 
+`include "set.v"
+
 module split_L1_cache ();
 
   parameter SETS = 16384;  // 2 to the power of 14
   parameter I_WAYS = 2;  // 2 way set associative Instruction cache 
   parameter D_WAYS = 4;  // 4 way set associative Data cache
-  parameter TAG_WIDTH = 12;
+  parameter TAG_WIDTH = 12;  // The Tag field
   parameter INDEX_WIDTH = 14;  // The Set field
   parameter BYTE_SELECT_WIDTH = 6;  // The byte selection for each block
   parameter ADDRESS_WIDTH = 32;  // The memory address lenght
@@ -30,7 +32,7 @@ module split_L1_cache ();
   reg [INDEX_WIDTH-1:0] index;
   reg [BYTE_SELECT_WIDTH-1:0] byteSelect;
 
-  // Three dimensional arrays for storing data 
+  // Three dimensional arrays for storing data in cache
 
   // Valid bit for both caches
   reg I_Valid[0:SETS-1][0:I_WAYS-1];
@@ -123,6 +125,9 @@ module split_L1_cache ();
           totalOperations = totalOperations + 1;
           cacheReferences = cacheReferences + 1.0;
           cacheReads = cacheReads + 1;
+
+          // set();
+
         end
       endcase
 
@@ -132,6 +137,38 @@ module split_L1_cache ();
 
   end
 
+  task set;
+    input [TAG_WIDTH-1:0] tag;
+    input [INDEX_WIDTH-1:0] index;
+    input [BYTE_SELECT_WIDTH-1:0] byteSelect;
+
+    begin
+      case (N)
+        // read data request to L1 data cache
+        0: begin
+          // Clear the hit values in set
+          for (i = 0; i < D_WAYS; i = i + 1) D_StoredHit[index][i] = 0;
+
+          // Examine each block in set
+          for (i = 0; i < D_WAYS; i = i + 1) begin
+            if (DONE == 0) begin
+              // If there is data inside the block
+              if (D_Valid[index][i] == 1) begin
+                // If the tag is matched
+                if (D_Tag[index][i] == tag) begin
+                  // MESI invalid status 
+                  if (D_StoredMESI[index][i] == 2'b00) begin
+                    D_StoredHit[index][i] = 0;
+                  end
+                end
+              end
+            end
+          end
+        end
+      endcase
+    end
+
+  endtask
 
 endmodule
 
