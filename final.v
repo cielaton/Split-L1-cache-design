@@ -1,6 +1,5 @@
 // Useful constants
 `define EOF 32'h FFFF_FFFF
-`define NULL 0
 
 module split_L1_cache ();
 
@@ -96,6 +95,24 @@ module split_L1_cache ();
 
   initial begin : file_block
     file = $fopen("./trace.txt", "r");
+
+    // Init values
+    initialize();
+    hitCount = 0.0;
+
+    // If file open error, stop the block
+    if (file == 0) disable file_block;
+
+    // Read until the end of the file
+    while (!$feof(
+        file
+    )) begin
+      // Read the first character each line for operation
+      N = $fgetc(file);
+      N = N - 48; // The actual number from the character
+
+    end
+
     $fclose(file);
   end
 
