@@ -18,7 +18,7 @@ module split_L1_cache ();
   // File I/O parameters
 
   real hitRate;
-  integer r;
+  integer matchedNums;  // Store the number of matches from fscanf
   integer N;
   integer totalOperations = 0;
   real cacheReferences = 0.0;
@@ -109,11 +109,27 @@ module split_L1_cache ();
     )) begin
       // Read the first character each line for operation
       N = $fgetc(file);
-      N = N - 48; // The actual number from the character
+      N = N - 48;  // The actual number from the character
+
+      case (N)
+        0: begin
+          // Read the address from trace.txt file
+          matchedNums = $fscanf(file, " %h:\n", address);
+          tag = address[31:20];  // 12-bit tag
+          index = address[19:6];  // 14-bit index
+          byteSelect = address[5:0];  // 6-bit byte selection
+
+          // Increse the counter
+          totalOperations = totalOperations + 1;
+          cacheReferences = cacheReferences + 1.0;
+          cacheReads = cacheReads + 1;
+        end
+      endcase
 
     end
 
     $fclose(file);
+
   end
 
 
