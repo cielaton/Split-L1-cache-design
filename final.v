@@ -166,7 +166,9 @@ module split_L1_cache ();
                     if (MODE == 1) $display("Read from L2 by address: %h", tempAddress);
                     // Switch MESI state
                     D_StoredMESI[index][i] = 2'b10;
-
+                    // Adjust LRU bits
+                    D_LRU_replacement();
+                    DONE = 1;
                   end
                 end
               end
