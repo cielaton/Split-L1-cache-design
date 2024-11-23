@@ -154,23 +154,32 @@ module split_L1_cache ();
               if (D_Valid[index][i] == 1) begin
                 // If the tag is matched
                 if (D_Tag[index][i] == tag) begin
-                  // MESI invalid status 
-                  if (D_StoredMESI[index][i] == 2'b00) begin
-                    D_StoredHit[index][i] = 0;
-                    D_StoredC[index][i] = 2'b11;
-                    // Report to monitor
-                    cacheMiss = cacheMiss + 1;
-                    // address to fetch data from L2 cache
-                    tempAddress = {tag, index, byteSelect};
+                  D_StoredHit[index][i] = 1;
 
-                    if (MODE == 1) $display("Read from L2 by address: %h", tempAddress);
-                    // Switch MESI state
-                    D_StoredMESI[index][i] = 2'b10;
-                    // Adjust LRU bits
-                    D_LRU_replacement();
-                    DONE = 1;
-                  end
-                end
+                  // Report to monitor
+                  // address to fetch data from L2 cache
+                  hitCount = hitCount + 1.0;
+                  tempAddress = {tag, index, byteSelect};
+                  if (MODE == 1) $display("Read from L2 by address: %h", tempAddress);
+                  // Adjust LRU bits
+                  D_LRU_replacement();
+                  DONE = 1;
+                end  // Else, proceed to next block
+              end  // Compulsory MISS
+              else begin
+                D_StoredHit[index][i] = 0;
+
+                // Report MISS to the monitor
+                cacheMiss = cacheMiss + 1;
+                tempAddress = {tag, index, byteSelect};
+                // Update the tag field
+                D_Tag[index][i] = tag;
+                // Send data request to L2 cache
+                if (MODE == 1) $display("Read from L2 by Address: %h", tempAddress);
+                //Adjust LRU bits
+                D_LRU_replacement();
+                D_Valid[index][i] = 1;
+                DONE = 1;
               end
             end
           end
