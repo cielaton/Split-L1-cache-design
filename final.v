@@ -165,21 +165,45 @@ module split_L1_cache ();
                   D_LRU_replacement();
                   DONE = 1;
                 end  // Else, proceed to next block
-              end  // Compulsory MISS
+              end  // Compulsory MISS (Nothing exist in the block)
               else begin
                 D_StoredHit[index][i] = 0;
 
                 // Report MISS to the monitor
                 cacheMiss = cacheMiss + 1;
-                tempAddress = {tag, index, byteSelect};
                 // Update the tag field
                 D_Tag[index][i] = tag;
                 // Send data request to L2 cache
-                if (MODE == 1) $display("Read from L2 by Address: %h", tempAddress);
+                tempAddress = {tag, index, byteSelect};
+                if (MODE == 1) $display("Read from L2 by address: %h", tempAddress);
                 //Adjust LRU bits
                 D_LRU_replacement();
                 D_Valid[index][i] = 1;
                 DONE = 1;
+              end
+            end
+          end
+          // End of for loop indicate MISS (tag field)
+          if (DONE == 0) begin
+            // Report MISS to monitor
+            cacheMiss = cacheMiss + 1;
+
+            for (i = 0; i < D_WAYS; i = i + 1) begin
+              if (DONE == 0) begin
+                // Check for the last recently used block
+                if (D_LRUBits[index][i] == 7) begin
+                  if (MODE == 1) $display("Write back to L2 cache");
+
+                  // Update stored tag
+                  D_Tag[index][i] = tag;
+
+                  // Send data request to L2 cache
+                  tempAddress = {tag, index, byteSelect};
+                  if (MODE == 1) $display("Read from L2 by Address: %h", tempAddress);
+                  D_LRU_replacement();
+                  D_Valid[index][i] = 1;
+                  DONE = 1;
+                end
               end
             end
           end
