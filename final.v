@@ -86,20 +86,15 @@ module split_L1_cache ();
       N = N - 48;  // The actual number from the character
 
       case (N)
+        // Read data from L1 data cache
         0: begin
-          // Read the address from trace.txt file
-          matchedNums = $fscanf(file, " %h:\n", address);
-          tag = address[31:20];  // 12-bit tag
-          index = address[19:6];  // 14-bit index
-          byteSelect = address[5:0];  // 6-bit byte selection
-
-          // Increse the counter
-          totalOperations = totalOperations + 1;
-          cacheReferences = cacheReferences + 1.0;
-          cacheReads = cacheReads + 1;
-
-          set(tag, index, byteSelect);
-
+          request_setup();
+          set(N, tag, index, byteSelect);
+        end
+        // Write data to L1 data cache
+        1: begin
+          request_setup();
+          set(N, tag, index, byteSelect);
         end
       endcase
 
@@ -135,14 +130,30 @@ module split_L1_cache ();
     end
   endtask
 
+  task request_setup;
+    begin
+      // Read the address from trace.txt file
+      matchedNums = $fscanf(file, " %h:\n", address);
+      tag = address[31:20];  // 12-bit tag
+      index = address[19:6];  // 14-bit index
+      byteSelect = address[5:0];  // 6-bit byte selection
+
+      // Increse the counter
+      totalOperations = totalOperations + 1;
+      cacheReferences = cacheReferences + 1.0;
+      cacheReads = cacheReads + 1;
+    end
+  endtask
+
   task set;
+    input integer N;
     input [TAG_WIDTH-1:0] tag;
     input [INDEX_WIDTH-1:0] index;
     input [BYTE_SELECT_WIDTH-1:0] byteSelect;
 
     begin
       case (N)
-        // read data request to L1 data cache
+        // Read data from L1 data cache
         0: begin
           // Clear the hit values in set
           for (i = 0; i < D_WAYS; i = i + 1) D_StoredHit[index][i] = 0;
@@ -169,7 +180,7 @@ module split_L1_cache ();
               else begin
                 D_StoredHit[index][i] = 0;
 
-                // Report MISS to the monitor
+                // Report MISS to monitor
                 cacheMiss = cacheMiss + 1;
                 // Update the tag field
                 D_Tag[index][i] = tag;
@@ -183,6 +194,7 @@ module split_L1_cache ();
               end
             end
           end
+
           // End of for loop indicate MISS (tag field)
           if (DONE == 0) begin
             // Report MISS to monitor
@@ -190,7 +202,7 @@ module split_L1_cache ();
 
             for (i = 0; i < D_WAYS; i = i + 1) begin
               if (DONE == 0) begin
-                // Check for the last recently used block
+                // Check for the least recently used block
                 if (D_LRUBits[index][i] == 7) begin
                   if (MODE == 1) $display("Write back to L2 cache");
 
@@ -203,6 +215,58 @@ module split_L1_cache ();
                   D_LRU_replacement();
                   D_Valid[index][i] = 1;
                   DONE = 1;
+                end
+              end
+            end
+          end
+          // Reset DONE to 0
+        end
+        // ------------------------------------------------------
+        1: begin
+          // Clear stored hit values
+          for (i = 0; i < D_WAYS; i = i + 1) D_StoredHit[index][i] = 0;
+
+          // Examine each block in set
+          for (i = 0; i < D_WAYS; i = i + 1) begin
+            if (DONE == 0) begin
+              // If there is data inside the block
+              if (D_Valid[index][i] == 1) begin
+                // If the tag is matched
+                if (D_Tag[index][i] == tag) begin
+                  D_StoredHit[index][i] = 1;
+                  tempAddress = {tag, index, byteSelect};
+                  // Report HIT to monitor
+                  hitCount = hitCount + 1.0;
+                  D_LRU_replacement();
+                  DONE = 1;
+                end
+              end  // Compulsory MISS (Nothing exist in the block)
+              else begin
+                // Report MISS to monitor 
+                cacheMiss = cacheMiss + 1;
+                if (MODE == 1) begin
+                  tempAddress = {tag, index, byteSelect};
+                  $display("Write through to L2 by address %h", tempAddress);
+                end
+                // Update stored tag
+                D_Tag[index][i] = tag;
+                //Adjust LRU bits
+                D_LRU_replacement();
+                D_Valid[index][i] = 1;
+                DONE = 1;
+              end
+            end
+          end
+
+          // End of for loop indicate MISS (tag field)
+          if (DONE == 0) begin
+            // Report MISS to monitor
+            cacheMiss = cacheMiss + 1;
+
+            for (i = 0; i < D_WAYS; i = i + 1) begin
+              if (DONE == 0) begin
+                // Check for the last recently used block
+                if (D_LRUBits[index][i] == 7) begin
                 end
               end
             end
