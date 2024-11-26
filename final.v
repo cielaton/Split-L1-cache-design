@@ -204,6 +204,7 @@ module split_L1_cache ();
               if (DONE == 0) begin
                 // Check for the least recently used block
                 if (D_LRUBits[index][i] == 7) begin
+                  D_StoredHit[index][i] = 0;
                   if (MODE == 1) $display("Write back to L2 cache");
 
                   // Update stored tag
@@ -220,6 +221,7 @@ module split_L1_cache ();
             end
           end
           // Reset DONE to 0
+          DONE = 0;
         end
         // ------------------------------------------------------
         1: begin
@@ -243,9 +245,9 @@ module split_L1_cache ();
               end  // Compulsory MISS (Nothing exist in the block)
               else begin
                 // Report MISS to monitor 
-                cacheMiss = cacheMiss + 1;
+                cacheMiss   = cacheMiss + 1;
+                tempAddress = {tag, index, byteSelect};
                 if (MODE == 1) begin
-                  tempAddress = {tag, index, byteSelect};
                   $display("Write through to L2 by address %h", tempAddress);
                 end
                 // Update stored tag
@@ -265,12 +267,25 @@ module split_L1_cache ();
 
             for (i = 0; i < D_WAYS; i = i + 1) begin
               if (DONE == 0) begin
-                // Check for the last recently used block
+                // Check for the least recently used block
                 if (D_LRUBits[index][i] == 7) begin
+                  D_StoredHit[index][i] = 0;
+                  // Pull from memory and overwrite the evicted line
+                  tempAddress = {tag, index, byteSelect};
+                  if (MODE == 1) $display("Write-back to L2");
+
+                  // Update stored tag
+                  D_Tag[index][i] = tag;
+                  // Adjust LRU bits
+                  D_LRU_replacement();
+                  D_Valid[index][i] = 1;
+                  DONE = 1;
                 end
               end
             end
           end
+          // Reset DONE to 0
+          DONE = 0;
         end
       endcase
     end
