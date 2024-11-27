@@ -294,6 +294,31 @@ module split_L1_cache ();
           // Reset DONE to 0
           DONE = 0;
         end
+        // ------------------------------------------------------
+        2: begin
+          // Clear the hit values in set
+          for (i = 0; i < I_WAYS; i = i + 1) I_StoredHit[index][i] = 0;
+
+          // Examine each block in set
+          for (i = 0; i < I_WAYS; i = i + 1) begin
+            if (DONE == 0) begin
+              // If there is data inside the block
+              if (I_Valid[index][i] == 1) begin
+                // If the tag is matched
+                if (I_Tag[index][i] == tag) begin
+                  I_StoredHit[index][i] = 1'b1;
+
+                  // Report hit to monitor
+                  hitCount = hitCount + 1;
+
+                  // Adjust LRU bits
+                  I_LRU_replacement();
+                  DONE = 1;
+                end
+              end
+            end
+          end
+        end
       endcase
     end
 
