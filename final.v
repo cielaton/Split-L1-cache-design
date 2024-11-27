@@ -175,10 +175,7 @@ module split_L1_cache ();
                   D_StoredHit[index][i] = 1;
 
                   // Report to monitor
-                  // address to fetch data from L2 cache
                   hitCount = hitCount + 1.0;
-                  tempAddress = {tag, index, byteSelect};
-                  if (MODE == 1) $display("Read from L2 by address: %h", tempAddress);
                   // Adjust LRU bits
                   D_LRU_replacement();
                   DONE = 1;
