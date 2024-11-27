@@ -180,7 +180,7 @@ module split_L1_cache ();
                   D_LRU_replacement();
                   DONE = 1;
                 end  // Else, proceed to next block
-              end  // Compulsory MISS (Nothing exist in the block)
+              end  // compulsory miss (nothing exist in the block)
               else begin
                 D_StoredHit[index][i] = 0;
 
@@ -313,7 +313,27 @@ module split_L1_cache ();
                   DONE = 1;
                 end
               end
+            end  // compulsory miss (nothing exist in the block)
+            else begin
+
+              I_StoredHit[index][i] = 1'b0;
+
+              // Read from L2 cache
+              tempAddress = {tag, index, byteSelect};
+              if (MODE == 1) if (MODE == 1) $display("Read from L2 by Address: %h", tempAddress);
+
+              //Report MISS to monitor
+              cacheMiss = cacheMiss + 1;
+
+              // Update stored tag
+              I_Tag[index][i] = tag;
+
+              // Adjust LRU bits
+              I_LRU_replacement();
+              I_Valid[index][i] = 1;
+              DONE = 1;
             end
+
           end
         end
       endcase
