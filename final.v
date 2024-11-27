@@ -315,7 +315,6 @@ module split_L1_cache ();
               end
             end  // compulsory miss (nothing exist in the block)
             else begin
-
               I_StoredHit[index][i] = 1'b0;
 
               // Read from L2 cache
@@ -333,7 +332,32 @@ module split_L1_cache ();
               I_Valid[index][i] = 1;
               DONE = 1;
             end
+          end
+          // End of for loop indicate MISS (tag field)
+          if (DONE == 0) begin
+            // Report MISS to monitor
+            cacheMiss = cacheMiss + 1;
 
+            for (i = 0; i < I_WAYS; i = i + 1) begin
+              if (DONE == 0) begin
+                // Check for the least recently used block
+                if (I_LRUBits[index][i] == 3) begin
+                  // Clear stored hit bits
+                  I_StoredHit[index][i] = 0;
+                  if (MODE == 1) $display("Write back to L2 cache");
+
+                  // Update stored tag
+                  I_Tag[index][i] = tag;
+
+                  // Send data request to L2 cache
+                  tempAddress = {tag, index, byteSelect};
+                  if (MODE == 1) $display("Read from L2 by Address: %h", tempAddress);
+                  I_LRU_replacement();
+                  I_Valid[index][i] = 1;
+                  DONE = 1;
+                end
+              end
+            end
           end
         end
       endcase
