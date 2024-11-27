@@ -89,11 +89,19 @@ module split_L1_cache ();
         // Read data from L1 data cache
         0: begin
           request_setup();
+          cacheReads = cacheReads + 1;
           set(N, tag, index, byteSelect);
         end
         // Write data to L1 data cache
         1: begin
           request_setup();
+          cacheWrites = cacheWrites + 1;
+          set(N, tag, index, byteSelect);
+        end
+        // Instruction fetch (read request to L1 instruction cache)
+        2: begin
+          request_setup();
+          cacheReads = cacheReads + 1;
           set(N, tag, index, byteSelect);
         end
       endcase
@@ -141,7 +149,6 @@ module split_L1_cache ();
       // Increse the counter
       totalOperations = totalOperations + 1;
       cacheReferences = cacheReferences + 1.0;
-      cacheReads = cacheReads + 1;
     end
   endtask
 
