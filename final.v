@@ -104,6 +104,21 @@ module split_L1_cache ();
           cacheReads = cacheReads + 1;
           set(N, tag, index, byteSelect);
         end
+        // Evict command from L2 (for L2 evictions and inclusivity)
+        3: begin
+          request_setup();
+          set(N, tag, index, byteSelect);
+        end
+        // Clear cache and reset all states and statistics 
+        8: begin
+          initialize();  // Call the init task to reset stored cache values
+          cacheReferences = 0;
+          totalOperations = 0;
+          cacheReads = 0;
+          cacheWrites = 0;
+          hitCount = 0;
+          cacheMiss = 0;
+        end
       endcase
 
     end
@@ -359,6 +374,11 @@ module split_L1_cache ();
               end
             end
           end
+          // Reset DONE to 0
+          DONE = 0;
+        end
+        // ------------------------------------------------------
+        3: begin
         end
       endcase
     end
