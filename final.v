@@ -385,6 +385,7 @@ module split_L1_cache ();
 
   endtask
 
+  // ------------------------------------------------------
   // LRU replacement strategy
   task D_LRU_replacement;
     begin
@@ -405,6 +406,30 @@ module split_L1_cache ();
           I_LRUBits[index][j] = I_LRUBits[index][j] + 1;
       end
       I_LRUBits[index][i] = 2'b00;
+    end
+  endtask
+
+  // ------------------------------------------------------
+  // Write the contents and states of the cache to stdout
+  task write_out();
+    begin
+      for (i = 0; i < SETS; i = i + 1) begin
+        // For data cache
+        $display("D_Tag           D_LRU");
+        for (j = 0; j < D_WAYS; j = j + 1) begin
+          if (D_Valid[i][j] == 1) begin
+            $display("%h     %b ", D_Tag[i][j], D_LRUBits[i][j]);
+          end
+        end
+
+        // For instruction cache
+        $display("D_Tag           D_LRU");
+        for (j = 0; j < I_WAYS; j = j + 1) begin
+          if (I_Valid[i][j] == 1) begin
+            $display("%h     %b ", I_Tag[i][j], I_LRUBits[i][j]);
+          end
+        end
+      end
     end
   endtask
 endmodule
