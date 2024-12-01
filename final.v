@@ -119,6 +119,13 @@ module split_L1_cache ();
           hitCount = 0;
           cacheMiss = 0;
         end
+
+        // Print contents and states of the cache (allow subsequent trace activity)
+        9: begin
+          write_out();
+          totalOperations = totalOperations + 1;
+
+        end
       endcase
 
     end
@@ -127,6 +134,7 @@ module split_L1_cache ();
 
   end
 
+  // ------------------------------------------------------
   // Task to initilize all the register values
   task initialize;
     begin
@@ -153,6 +161,9 @@ module split_L1_cache ();
     end
   endtask
 
+  
+  // ------------------------------------------------------
+  // Decode the address and update some state variables
   task request_setup;
     begin
       // Read the address from trace.txt file
