@@ -42,8 +42,8 @@ module split_L1_cache ();
   reg [13:0] I_Index[0:SETS-1][0:D_WAYS-1];
   reg [13:0] D_Index[0:SETS-1][0:I_WAYS-1];
   // Bits indicate the LRU algorithm
-  reg [1:0] I_LRUBits[0:SETS-1][0:I_WAYS-1];
-  reg [2:0] D_LRUBits[0:SETS-1][0:D_WAYS-1];
+  reg I_LRUBits[0:SETS-1][0:I_WAYS-1];
+  reg [1:0] D_LRUBits[0:SETS-1][0:D_WAYS-1];
   // stored MESI value
   reg [1:0] I_StoredMESI[0:SETS-1][0:I_WAYS-1];
   reg [1:0] D_StoredMESI[0:SETS-1][0:D_WAYS-1];
@@ -243,7 +243,7 @@ module split_L1_cache ();
             for (i = 0; i < D_WAYS; i = i + 1) begin
               if (DONE == 0) begin
                 // Check for the least recently used block
-                if (D_LRUBits[index][i] == 7) begin
+                if (D_LRUBits[index][i] == 3) begin
                   D_StoredHit[index][i] = 0;
                   if (MODE == 1) $display("Write back to L2 cache");
 
@@ -308,7 +308,7 @@ module split_L1_cache ();
             for (i = 0; i < D_WAYS; i = i + 1) begin
               if (DONE == 0) begin
                 // Check for the least recently used block
-                if (D_LRUBits[index][i] == 7) begin
+                if (D_LRUBits[index][i] == 3) begin
                   D_StoredHit[index][i] = 0;
                   // Pull from memory and overwrite the evicted line
                   tempAddress = {tag, index, byteSelect};
@@ -377,7 +377,7 @@ module split_L1_cache ();
             for (i = 0; i < I_WAYS; i = i + 1) begin
               if (DONE == 0) begin
                 // Check for the least recently used block
-                if (I_LRUBits[index][i] == 3) begin
+                if (I_LRUBits[index][i] == 1) begin
                   // Clear stored hit bits
                   I_StoredHit[index][i] = 0;
                   if (MODE == 1) $display("Write back to L2 cache");
@@ -415,7 +415,7 @@ module split_L1_cache ();
         else if (D_LRUBits[index][j] <= D_LRUBits[index][i])
           D_LRUBits[index][j] = D_LRUBits[index][j] + 1;
       end
-      D_LRUBits[index][i] = 3'b000;
+      D_LRUBits[index][i] = 2'b00;
     end
   endtask
 
@@ -426,7 +426,7 @@ module split_L1_cache ();
         else if (I_LRUBits[index][j] <= I_LRUBits[index][i])
           I_LRUBits[index][j] = I_LRUBits[index][j] + 1;
       end
-      I_LRUBits[index][i] = 2'b00;
+      I_LRUBits[index][i] = 1'b0;
     end
   endtask
 
