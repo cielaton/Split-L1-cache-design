@@ -21,7 +21,7 @@ module split_L1_cache ();
   integer matchedNums;  // Store the number of matches from fscanf
   integer N;
   integer totalOperations = 0;
-  real cacheReferences = 0.0;
+  real cacheReferences = 0.0;  // Number of times the cache is refered
   integer cacheReads = 0;
   integer cacheMiss = 0;
   integer cacheWrites = 0;
@@ -119,16 +119,25 @@ module split_L1_cache ();
           hitCount = 0;
           cacheMiss = 0;
         end
-
         // Print contents and states of the cache (allow subsequent trace activity)
         9: begin
           write_out();
           totalOperations = totalOperations + 1;
-
         end
+        default: $display("Invalid option");
       endcase
-
     end
+
+    // Display information when reached end of file
+    $display("Total number of cache reads: %d \n", cacheReads);
+    $display("Total number of cache writes: %d \n", cacheWrites);
+    $display("Total number of cache hits: %d \n", hitCount);
+    $display("Total number of cache miss: %d \n", cacheMiss);
+
+    if (cacheReferences != 0) hitRate = hitCount / (hitCount + cacheMiss);
+    else hitRate = 0.0;
+
+    $display("Hit rate: %f \n", hitRate);
 
     $fclose(file);
 
@@ -161,7 +170,7 @@ module split_L1_cache ();
     end
   endtask
 
-  
+
   // ------------------------------------------------------
   // Decode the address and update some state variables
   task request_setup;
