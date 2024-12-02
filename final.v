@@ -229,7 +229,7 @@ module split_L1_cache ();
                 D_Tag[index][i] = tag;
                 // Send data request to L2 cache
                 tempAddress = {tag, index, byteSelect};
-                if (MODE == 1) $display("Read from L2 by address: %h", tempAddress);
+                if (MODE == 1) $display("[Data] Read from L2 by Address: %h", tempAddress);
                 //Adjust LRU bits
                 D_LRU_replacement();
                 D_Valid[index][i] = 1;
@@ -247,16 +247,15 @@ module split_L1_cache ();
               if (DONE == 0) begin
                 // Check for the least recently used block
                 if (D_LRUBits[index][i] == 3) begin
-                  $display("Replaced the tag: %h", D_Tag[index][i]);
                   D_StoredHit[index][i] = 0;
-                  if (MODE == 1) $display("Write back to L2 cache");
+                  if (MODE == 1) $display("Write back to L2");
 
                   // Update stored tag
                   D_Tag[index][i] = tag;
 
                   // Send data request to L2 cache
                   tempAddress = {tag, index, byteSelect};
-                  if (MODE == 1) $display("Read from L2 by Address: %h", tempAddress);
+                  if (MODE == 1) $display("[Data] Read from L2 by Address: %h", tempAddress);
                   D_LRU_replacement();
                   D_Valid[index][i] = 1;
                   DONE = 1;
@@ -316,7 +315,7 @@ module split_L1_cache ();
                   D_StoredHit[index][i] = 0;
                   // Pull from memory and overwrite the evicted line
                   tempAddress = {tag, index, byteSelect};
-                  if (MODE == 1) $display("Write-back to L2");
+                  if (MODE == 1) $display("Write back to L2");
 
                   // Update stored tag
                   D_Tag[index][i] = tag;
@@ -384,7 +383,7 @@ module split_L1_cache ();
                 if (I_LRUBits[index][i] == 1) begin
                   // Clear stored hit bits
                   I_StoredHit[index][i] = 0;
-                  if (MODE == 1) $display("Write back to L2 cache");
+                  if (MODE == 1) $display("Write back to L2");
 
                   // Update stored tag
                   I_Tag[index][i] = tag;
@@ -439,7 +438,7 @@ module split_L1_cache ();
   task write_out();
     begin
       // For data cache
-      $display("------------- Data cache -------------");
+      $display("\n------------- Data cache -------------");
       $display("WAYS     D_Tag    D_LRU");
       for (i = 0; i < SETS; i = i + 1) begin
         for (j = 0; j < D_WAYS; j = j + 1) begin
@@ -448,10 +447,10 @@ module split_L1_cache ();
           end
         end
       end
-      $display("(End)\n");
+      $display("(End)");
 
       // For instruction cache
-      $display("------------- Instruction cache -------------");
+      $display("\n------------- Instruction cache -------------");
       $display("WAYS     D_Tag    D_LRU");
       for (i = 0; i < SETS; i = i + 1) begin
         for (j = 0; j < I_WAYS; j = j + 1) begin
