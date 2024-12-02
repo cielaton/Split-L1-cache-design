@@ -10,7 +10,7 @@ module split_L1_cache ();
   parameter INDEX_WIDTH = 14;  // The Set field
   parameter BYTE_SELECT_WIDTH = 6;  // The byte selection for each block
   parameter ADDRESS_WIDTH = 32;  // The memory address lenght
-  parameter MODE = 0;
+  parameter MODE = 1;
 
   // MESI parameter
   parameter MESI_INVALID = 2'b00, MESI_MODIFIED = 2'b01, MESI_EXCLUSIVE = 2'b10, MESI_SHARED = 2'b11;
@@ -65,8 +65,8 @@ module split_L1_cache ();
   // Hit count
   real hitCount;
 
-  integer file; // File descriptor
-  integer temp; // Variable to ignore returned value
+  integer file;  // File descriptor
+  integer temp;  // Variable to ignore returned value
 
   initial begin : file_block
     file = $fopen("./trace.txt", "r");
@@ -122,7 +122,7 @@ module split_L1_cache ();
         end
         // Print contents and states of the cache (allow subsequent trace activity)
         9: begin
-          // write_out();
+          write_out();
           totalOperations = totalOperations + 1;
         end
         default: $display("Invalid operation");
@@ -177,10 +177,13 @@ module split_L1_cache ();
     begin
       // Read the address from trace.txt file
       matchedNums = $fscanf(file, " %h:\n", address);
-      
+
       tag = address[31:20];  // 12-bit tag
       index = address[19:6];  // 14-bit index
       byteSelect = address[5:0];  // 6-bit byte selection
+
+      $display("\nTag: %h, Index: %h, byteSelect: %h", tag, index, byteSelect);
+
 
       // Increse the counter
       totalOperations = totalOperations + 1;
@@ -244,6 +247,7 @@ module split_L1_cache ();
               if (DONE == 0) begin
                 // Check for the least recently used block
                 if (D_LRUBits[index][i] == 3) begin
+                  $display("Replaced the tag: %h", D_Tag[index][i]);
                   D_StoredHit[index][i] = 0;
                   if (MODE == 1) $display("Write back to L2 cache");
 
@@ -434,20 +438,19 @@ module split_L1_cache ();
   // Write the contents and states of the cache to stdout
   task write_out();
     begin
+      $display("D_Tag           D_LRU");
       for (i = 0; i < SETS; i = i + 1) begin
         // For data cache
-        $display("D_Tag           D_LRU");
         for (j = 0; j < D_WAYS; j = j + 1) begin
           if (D_Valid[i][j] == 1) begin
-            $display("%h     %b ", D_Tag[i][j], D_LRUBits[i][j]);
+            $display("%d  %h        %b ", D_WAYS, D_Tag[i][j], D_LRUBits[i][j]);
           end
         end
 
         // For instruction cache
-        $display("D_Tag           D_LRU");
         for (j = 0; j < I_WAYS; j = j + 1) begin
           if (I_Valid[i][j] == 1) begin
-            $display("%h     %b ", I_Tag[i][j], I_LRUBits[i][j]);
+            $display("%h        %b ", I_Tag[i][j], I_LRUBits[i][j]);
           end
         end
       end
