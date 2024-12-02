@@ -403,6 +403,26 @@ module split_L1_cache ();
         end
         // ------------------------------------------------------
         3: begin
+          // Examine each block in set
+          for (i = 0; i < D_WAYS; i = i + 1) begin
+            if (DONE == 0) begin
+              // If there is data inside the block
+              if (D_Valid[index][i] == 1) begin
+                // If the tag is matched
+                if (D_Tag[index][i] == tag) begin
+                  $display("Block in L1 cache is evicted");
+
+                  // Update status
+                  D_Valid[index][i] = 0;
+                  D_Tag[index][i] = {12{1'b0}};
+                  D_LRUBits[index][i] = 0;
+                  D_StoredHit[index][i] = 0;
+                  D_StoredC[index][i] = 2'bxx;
+                  D_StoredMESI[index][i] = 0;
+                end
+              end
+            end
+          end
         end
       endcase
     end
