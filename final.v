@@ -177,7 +177,6 @@ module split_L1_cache ();
     begin
       // Read the address from trace.txt file
       matchedNums = $fscanf(file, " %h:\n", address);
-      $display("Address: %h\n", address);
       
       tag = address[31:20];  // 12-bit tag
       index = address[19:6];  // 14-bit index
