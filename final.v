@@ -125,15 +125,15 @@ module split_L1_cache ();
           write_out();
           totalOperations = totalOperations + 1;
         end
-        default: $display("Invalid operation");
+        default: $display("");
       endcase
     end
 
     // Display information when reached end of file
-    $display("Total number of cache reads: %d \n", cacheReads);
-    $display("Total number of cache writes: %d \n", cacheWrites);
-    $display("Total number of cache hits: %d \n", hitCount);
-    $display("Total number of cache miss: %d \n", cacheMiss);
+    $display("Total number of cache reads: %d", cacheReads);
+    $display("Total number of cache writes: %d", cacheWrites);
+    $display("Total number of cache hits: %d", hitCount);
+    $display("Total number of cache miss: %d", cacheMiss);
 
     if (cacheReferences != 0) hitRate = hitCount / (hitCount + cacheMiss);
     else hitRate = 0.0;
@@ -182,7 +182,7 @@ module split_L1_cache ();
       index = address[19:6];  // 14-bit index
       byteSelect = address[5:0];  // 6-bit byte selection
 
-      $display("\nTag: %h, Index: %h, byteSelect: %h", tag, index, byteSelect);
+      // $display("\nTag: %h, Index: %h, byteSelect: %h", tag, index, byteSelect);
 
 
       // Increse the counter
@@ -438,22 +438,29 @@ module split_L1_cache ();
   // Write the contents and states of the cache to stdout
   task write_out();
     begin
-      $display("D_Tag           D_LRU");
+      $display("------------- Data cache -------------");
+      $display("WAYS     D_Tag    D_LRU");
       for (i = 0; i < SETS; i = i + 1) begin
         // For data cache
         for (j = 0; j < D_WAYS; j = j + 1) begin
           if (D_Valid[i][j] == 1) begin
-            $display("%d  %h        %b ", D_WAYS, D_Tag[i][j], D_LRUBits[i][j]);
-          end
-        end
-
-        // For instruction cache
-        for (j = 0; j < I_WAYS; j = j + 1) begin
-          if (I_Valid[i][j] == 1) begin
-            $display("%h        %b ", I_Tag[i][j], I_LRUBits[i][j]);
+            $display("%-8d %-8h %b ", D_WAYS, D_Tag[i][j], D_LRUBits[i][j]);
           end
         end
       end
+      $display("(End)\n");
+
+      // For instruction cache
+      $display("------------- Instruction cache -------------");
+      $display("WAYS     D_Tag    D_LRU");
+      for (i = 0; i < SETS; i = i + 1) begin
+        for (j = 0; j < I_WAYS; j = j + 1) begin
+          if (I_Valid[i][j] == 1) begin
+            $display("%-8d %-8h %b ", I_Tag[i][j], I_LRUBits[i][j]);
+          end
+        end
+      end
+      $display("(End)\n");
     end
   endtask
 endmodule
