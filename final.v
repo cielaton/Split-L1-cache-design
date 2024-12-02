@@ -65,7 +65,8 @@ module split_L1_cache ();
   // Hit count
   real hitCount;
 
-  integer file;  // File descriptor
+  integer file; // File descriptor
+  integer temp; // Variable to ignore returned value
 
   initial begin : file_block
     file = $fopen("./trace.txt", "r");
@@ -82,7 +83,7 @@ module split_L1_cache ();
         file
     )) begin
       // Read the first character each line for operation
-      N = $fgetc(file);
+      temp = $fscanf(file, "%s ", N);
       N = N - 48;  // The actual number from the character
 
       case (N)
@@ -121,10 +122,10 @@ module split_L1_cache ();
         end
         // Print contents and states of the cache (allow subsequent trace activity)
         9: begin
-          write_out();
+          // write_out();
           totalOperations = totalOperations + 1;
         end
-        default: $display("Invalid option");
+        default: $display("Invalid operation");
       endcase
     end
 
@@ -140,7 +141,6 @@ module split_L1_cache ();
     $display("Hit rate: %f \n", hitRate);
 
     $fclose(file);
-
   end
 
   // ------------------------------------------------------
@@ -177,6 +177,8 @@ module split_L1_cache ();
     begin
       // Read the address from trace.txt file
       matchedNums = $fscanf(file, " %h:\n", address);
+      $display("Address: %h\n", address);
+      
       tag = address[31:20];  // 12-bit tag
       index = address[19:6];  // 14-bit index
       byteSelect = address[5:0];  // 6-bit byte selection
