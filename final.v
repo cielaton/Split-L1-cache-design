@@ -12,9 +12,6 @@ module split_L1_cache ();
   parameter ADDRESS_WIDTH = 32;  // The memory address lenght
   integer MODE;
 
-  // MESI parameter
-  parameter MESI_INVALID = 2'b00, MESI_MODIFIED = 2'b01, MESI_EXCLUSIVE = 2'b10, MESI_SHARED = 2'b11;
-
   // File I/O parameters
 
   real hitRate;
@@ -44,9 +41,6 @@ module split_L1_cache ();
   // Bits indicate the LRU algorithm
   reg I_LRUBits[0:SETS-1][0:I_WAYS-1];
   reg [1:0] D_LRUBits[0:SETS-1][0:D_WAYS-1];
-  // stored MESI value
-  reg [1:0] I_StoredMESI[0:SETS-1][0:I_WAYS-1];
-  reg [1:0] D_StoredMESI[0:SETS-1][0:D_WAYS-1];
   // Bit indicate the cache hit
   reg I_StoredHit[0:SETS-1][0:I_WAYS-1];
   reg D_StoredHit[0:SETS-1][0:D_WAYS-1];
@@ -159,7 +153,6 @@ module split_L1_cache ();
           I_LRUBits[i][j] = 0;
           I_StoredHit[i][j] = 0;
           I_StoredC[i][j] = 2'bxx;
-          I_StoredMESI[i][j] = 0;
         end
         for (j = 0; j < D_WAYS; j = j + 1) begin
           D_Valid[i][j] = 0;
@@ -167,7 +160,6 @@ module split_L1_cache ();
           D_LRUBits[i][j] = 0;
           D_StoredHit[i][j] = 0;
           D_StoredC[i][j] = 2'bxx;
-          D_StoredMESI[i][j] = 0;
         end
         DONE = 1'b0;
       end
@@ -430,7 +422,6 @@ module split_L1_cache ();
                   D_LRUBits[index][i] = 0;
                   D_StoredHit[index][i] = 0;
                   D_StoredC[index][i] = 2'bxx;
-                  D_StoredMESI[index][i] = 0;
                 end
               end
             end
