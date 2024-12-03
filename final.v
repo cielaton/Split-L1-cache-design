@@ -252,14 +252,16 @@ module split_L1_cache ();
                 // Check for the least recently used block
                 if (D_LRUBits[index][i] == 3) begin
                   D_StoredHit[index][i] = 0;
-                  if (MODE == 1) $display("[Data] Write back to L2");
-
-                  // Update stored tag
-                  D_Tag[index][i] = tag;
 
                   // Send data request to L2 cache
                   tempAddress = {tag, index, byteSelect};
-                  if (MODE == 1) $display("[Data] Read from L2 by Address: %h", tempAddress);
+                  if (MODE == 1) begin
+                    $display("[Data] Write back to L2");
+                    $display("[Data] Read from L2 by Address: %h", tempAddress);
+                  end
+                  // Update stored tag
+                  D_Tag[index][i] = tag;
+
                   D_LRU_replacement();
                   D_Valid[index][i] = 1;
                   DONE = 1;
@@ -319,7 +321,10 @@ module split_L1_cache ();
                   D_StoredHit[index][i] = 0;
                   // Pull from memory and overwrite the evicted line
                   tempAddress = {tag, index, byteSelect};
-                  if (MODE == 1) $display("[Data] Write back to L2");
+                  if (MODE == 1) begin
+                    $display("[Data] Write back to L2");
+                    $display("[Data] Read from L2 by Address: %h", tempAddress);
+                  end
 
                   // Update stored tag
                   D_Tag[index][i] = tag;
@@ -387,14 +392,17 @@ module split_L1_cache ();
                 if (I_LRUBits[index][i] == 1) begin
                   // Clear stored hit bits
                   I_StoredHit[index][i] = 0;
-                  if (MODE == 1) $display("Write back to L2");
+
+                  // Send data request to L2 cache
+                  tempAddress = {tag, index, byteSelect};
+                  if (MODE == 1) begin
+                    $display("[Instruction] Write back to L2");
+                    $display("[Instruction] Read from L2 by Address: %h", tempAddress);
+                  end
 
                   // Update stored tag
                   I_Tag[index][i] = tag;
 
-                  // Send data request to L2 cache
-                  tempAddress = {tag, index, byteSelect};
-                  if (MODE == 1) $display("[Instruction] Read from L2 by Address: %h", tempAddress);
                   I_LRU_replacement();
                   I_Valid[index][i] = 1;
                   DONE = 1;
