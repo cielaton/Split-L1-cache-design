@@ -10,7 +10,7 @@ module split_L1_cache ();
   parameter INDEX_WIDTH = 14;  // The Set field
   parameter BYTE_SELECT_WIDTH = 6;  // The byte selection for each block
   parameter ADDRESS_WIDTH = 32;  // The memory address lenght
-  parameter MODE = 1;
+  integer MODE;
 
   // MESI parameter
   parameter MESI_INVALID = 2'b00, MESI_MODIFIED = 2'b01, MESI_EXCLUSIVE = 2'b10, MESI_SHARED = 2'b11;
@@ -68,8 +68,12 @@ module split_L1_cache ();
   integer file;  // File descriptor
   integer temp;  // Variable to ignore returned value
 
+  input_arguments inputHandler (
+      file,
+      MODE
+  );
+
   initial begin : file_block
-    file = $fopen("./trace.txt", "r");
 
     // Init values
     initialize();
