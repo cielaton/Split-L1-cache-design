@@ -114,7 +114,6 @@ module split_L1_cache ();
         8: begin
           initialize();  // Call the init task to reset stored cache values
           cacheReferences = 0;
-          totalOperations = 0;
           cacheReads = 0;
           cacheWrites = 0;
           hitCount = 0;
@@ -130,10 +129,11 @@ module split_L1_cache ();
     end
 
     // Display information when reached end of file
-    $display("Total number of cache reads: %d", cacheReads);
-    $display("Total number of cache writes: %d", cacheWrites);
-    $display("Total number of cache hits: %d", hitCount);
-    $display("Total number of cache miss: %d", cacheMiss);
+    $display("Total operations: %16d", totalOperations);
+    $display("Total number of cache reads: %5d", cacheReads);
+    $display("Total number of cache writes: %4d", cacheWrites);
+    $display("Total number of cache hits: %6d", hitCount);
+    $display("Total number of cache miss: %6d", cacheMiss);
 
     if (cacheReferences != 0) hitRate = hitCount / (hitCount + cacheMiss);
     else hitRate = 0.0;
@@ -248,7 +248,7 @@ module split_L1_cache ();
                 // Check for the least recently used block
                 if (D_LRUBits[index][i] == 3) begin
                   D_StoredHit[index][i] = 0;
-                  if (MODE == 1) $display("Write back to L2");
+                  if (MODE == 1) $display("[Data] Write back to L2");
 
                   // Update stored tag
                   D_Tag[index][i] = tag;
@@ -315,7 +315,7 @@ module split_L1_cache ();
                   D_StoredHit[index][i] = 0;
                   // Pull from memory and overwrite the evicted line
                   tempAddress = {tag, index, byteSelect};
-                  if (MODE == 1) $display("Write back to L2");
+                  if (MODE == 1) $display("[Data] Write back to L2");
 
                   // Update stored tag
                   D_Tag[index][i] = tag;
@@ -471,7 +471,7 @@ module split_L1_cache ();
 
       // For instruction cache
       $display("\n------------- Instruction cache -------------");
-      $display("WAYS     D_Tag    D_LRU");
+      $display("WAYS     I_Tag    I_LRU");
       for (i = 0; i < SETS; i = i + 1) begin
         for (j = 0; j < I_WAYS; j = j + 1) begin
           if (I_Valid[i][j] == 1) begin
