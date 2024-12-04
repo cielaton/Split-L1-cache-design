@@ -60,13 +60,10 @@ module split_L1_cache ();
   );
 
   initial begin : file_block
-
     // Init values
     initialize();
-
     // If file open error, stop the block
     if (file == 0) disable file_block;
-
     // Read until the end of the file
     while (!$feof(
         file
@@ -74,7 +71,6 @@ module split_L1_cache ();
       // Read the first character each line for operation
       temp = $fscanf(file, "%s ", N);
       N = N - 48;  // The actual number from the character
-
       case (N)
         // Read data from L1 data cache
         0: begin
@@ -156,7 +152,6 @@ module split_L1_cache ();
     end
   endtask
 
-
   // ------------------------------------------------------
   // Decode the address and update some state variables
   task request_setup;
@@ -167,16 +162,13 @@ module split_L1_cache ();
       tag = address[31:20];  // 12-bit tag
       index = address[19:6];  // 14-bit index
       byteSelect = address[5:0];  // 6-bit byte selection
-
-      // $display("\nTag: %h, Index: %h, byteSelect: %h", tag, index, byteSelect);
-
-
       // Increse the counter
       totalOperations = totalOperations + 1;
       cacheReferences = cacheReferences + 1.0;
     end
   endtask
 
+  // ------------------------------------------------------
   task set;
     input integer N;
     input [TAG_WIDTH-1:0] tag;
