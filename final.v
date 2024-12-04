@@ -395,6 +395,7 @@ module split_L1_cache ();
 
                   // Update status
                   D_Valid[index][i] = 0;
+                  D_Dirty[index][i] = 0;
                   D_Tag[index][i] = {12{1'b0}};
                 end
               end
