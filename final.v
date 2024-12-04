@@ -32,6 +32,9 @@ module split_L1_cache ();
   // Valid bit for both caches
   reg I_Valid[0:SETS-1][0:I_WAYS-1];
   reg D_Valid[0:SETS-1][0:D_WAYS-1];
+  // Dirty bit for both caches
+  reg I_Dirty[0:SETS-1][0:I_WAYS-1];
+  reg D_Dirty[0:SETS-1][0:D_WAYS-1];
   // Tag bits for both caches
   reg [11:0] I_Tag[0:SETS-1][0:D_WAYS-1];
   reg [11:0] D_Tag[0:SETS-1][0:I_WAYS-1];
@@ -44,9 +47,6 @@ module split_L1_cache ();
   // Bit indicate the cache hit
   reg I_StoredHit[0:SETS-1][0:I_WAYS-1];
   reg D_StoredHit[0:SETS-1][0:D_WAYS-1];
-  // Haven't known yet
-  reg [1:0] I_StoredC[0:SETS-1][0:I_WAYS-1];
-  reg [1:0] D_StoredC[0:SETS-1][0:D_WAYS-1];
 
   // Temporary address
   reg [ADDRESS_WIDTH-1:0] tempAddress;
@@ -152,14 +152,14 @@ module split_L1_cache ();
           I_Tag[i][j] = {12{1'b0}};
           I_LRUBits[i][j] = 0;
           I_StoredHit[i][j] = 0;
-          I_StoredC[i][j] = 2'bxx;
+          I_Dirty[i][j] = 0;
         end
         for (j = 0; j < D_WAYS; j = j + 1) begin
           D_Valid[i][j] = 0;
           D_Tag[i][j] = {12{1'b0}};
           D_LRUBits[i][j] = 0;
           D_StoredHit[i][j] = 0;
-          D_StoredC[i][j] = 2'bxx;
+          D_Dirty[i][j] = 0;
         end
         DONE = 1'b0;
       end
@@ -282,6 +282,8 @@ module split_L1_cache ();
                   hitCount = hitCount + 1.0;
                   D_LRU_replacement();
                   DONE = 1;
+                  // Update dirty bit
+                  D_Dirty[index][i] = 1;
                 end
               end  // Compulsory MISS (Nothing exist in the block)
               else begin
@@ -297,6 +299,8 @@ module split_L1_cache ();
                 D_LRU_replacement();
                 D_Valid[index][i] = 1;
                 DONE = 1;
+                // Update dirty bit
+                D_Dirty[index][i] = 1;
               end
             end
           end
@@ -314,7 +318,8 @@ module split_L1_cache ();
                   // Pull from memory and overwrite the evicted line
                   tempAddress = {tag, index, byteSelect};
                   if (MODE == 1) begin
-                    $display("[Data] Write back to L2");
+                    // Evict 
+                    if (D_Dirty[index][i] == 1) $display("[Data] Write back to L2");
                     $display("[Data] Read from L2 by Address: %h", tempAddress);
                   end
 
@@ -324,6 +329,8 @@ module split_L1_cache ();
                   D_LRU_replacement();
                   D_Valid[index][i] = 1;
                   DONE = 1;
+                  // Update dirty bit
+                  D_Dirty[index][i] = 1;
                 end
               end
             end
@@ -357,8 +364,7 @@ module split_L1_cache ();
 
                 // Read from L2 cache
                 tempAddress = {tag, index, byteSelect};
-                if (MODE == 1)
-                  if (MODE == 1) $display("[Instruction] Read from L2 by Address: %h", tempAddress);
+                if (MODE == 1) $display("[Instruction] Read from L2 by Address: %h", tempAddress);
 
                 //Report MISS to monitor
                 cacheMiss = cacheMiss + 1;
@@ -420,7 +426,6 @@ module split_L1_cache ();
                   D_Tag[index][i] = {12{1'b0}};
                   D_LRUBits[index][i] = 0;
                   D_StoredHit[index][i] = 0;
-                  D_StoredC[index][i] = 2'bxx;
                 end
               end
             end
