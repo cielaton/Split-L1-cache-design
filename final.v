@@ -257,9 +257,13 @@ module split_L1_cache ();
               if (D_Valid[index][i] == 1) begin
                 // If the tag is matched
                 if (D_Tag[index][i] == tag) begin
-                  tempAddress = {tag, index, byteSelect};
                   // Report HIT to monitor
                   hitCount = hitCount + 1.0;
+
+                  if (MODE == 1) begin
+                    $display("[Data] Write through to L2 by address %h", tempAddress);
+                  end
+
                   D_LRU_replacement();
                   DONE = 1;
                   // Update dirty bit
@@ -271,6 +275,7 @@ module split_L1_cache ();
                 missCount   = missCount + 1;
                 tempAddress = {tag, index, byteSelect};
                 if (MODE == 1) begin
+                  $display("[Data] Read from L2 by Address: %h", tempAddress);
                   $display("[Data] Write through to L2 by address %h", tempAddress);
                 end
                 // Update stored tag
@@ -326,7 +331,6 @@ module split_L1_cache ();
               if (I_Valid[index][i] == 1) begin
                 // If the tag is matched
                 if (I_Tag[index][i] == tag) begin
-
                   // Report hit to monitor
                   hitCount = hitCount + 1;
                   // Adjust LRU bits
@@ -335,17 +339,13 @@ module split_L1_cache ();
                 end
               end  // compulsory miss (nothing exist in the block)
             else begin
-
                 // Read from L2 cache
                 tempAddress = {tag, index, byteSelect};
                 if (MODE == 1) $display("[Instruction] Read from L2 by Address: %h", tempAddress);
-
                 //Report MISS to monitor
                 missCount = missCount + 1;
-
                 // Update stored tag
                 I_Tag[index][i] = tag;
-
                 // Adjust LRU bits
                 I_LRU_replacement();
                 I_Valid[index][i] = 1;
@@ -396,7 +396,6 @@ module split_L1_cache ();
                   // Update status
                   D_Valid[index][i] = 0;
                   D_Tag[index][i] = {12{1'b0}};
-                  D_LRUBits[index][i] = 0;
                 end
               end
             end
