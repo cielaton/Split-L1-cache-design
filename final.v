@@ -248,7 +248,7 @@ module split_L1_cache ();
                   // Send data request to L2 cache
                   tempAddress = {tag, index, byteSelect};
                   if (MODE == 1) begin
-                    $display("[Data] Write back to L2");
+                    // $display("[Data] Write back to L2");
                     $display("[Data] Read from L2 by Address: %h", tempAddress);
                   end
                   // Update stored tag
@@ -289,7 +289,7 @@ module split_L1_cache ();
                 cacheMiss   = cacheMiss + 1;
                 tempAddress = {tag, index, byteSelect};
                 if (MODE == 1) begin
-                  $display("Write through to L2 by address %h", tempAddress);
+                  $display("[Data] Write through to L2 by address %h", tempAddress);
                 end
                 // Update stored tag
                 D_Tag[index][i] = tag;
@@ -388,7 +388,6 @@ module split_L1_cache ();
                   // Send data request to L2 cache
                   tempAddress = {tag, index, byteSelect};
                   if (MODE == 1) begin
-                    $display("[Instruction] Write back to L2");
                     $display("[Instruction] Read from L2 by Address: %h", tempAddress);
                   end
 
