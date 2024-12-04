@@ -228,7 +228,8 @@ module split_L1_cache ();
               if (DONE == 0) begin
                 // Check for the least recently used block
                 if (D_LRUBits[index][i] == 3) begin
-
+                  // Evict 
+                  if (D_Dirty[index][i] == 1) $display("[Data] Write back to L2");
                   // Send data request to L2 cache
                   tempAddress = {tag, index, byteSelect};
                   if (MODE == 1) begin
@@ -396,7 +397,7 @@ module split_L1_cache ();
                   // Update status
                   D_Valid[index][i] = 0;
                   D_Dirty[index][i] = 0;
-                  D_Tag[index][i] = {12{1'b0}};
+                  D_Tag[index][i]   = {12{1'b0}};
                 end
               end
             end
