@@ -118,7 +118,7 @@ module split_L1_cache ();
     if (cacheReferences != 0) hitRate = hitCount / (hitCount + missCount);
     else hitRate = 0.0;
 
-    $display("Total operations: 16d", totalOperations);
+    $display("Total operations: %14d", totalOperations);
     $display("Number of cache reads: %9d", cacheReads);
     $display("Number of cache writes: %8d", cacheWrites);
     $display("Number of cache hits: %10d", hitCount);
@@ -218,10 +218,10 @@ module split_L1_cache ();
               if (DONE == 0) begin
                 // Check for the least recently used block
                 if (D_LRUBits[index][i] == 3) begin
-                  // Evict 
-                  if (D_Dirty[index][i] == 1) $display("[Data] Write back to L2");
                   // Send data request to L2 cache
                   if (MODE == 1) begin
+                    // Write-back 
+                    if (D_Dirty[index][i] == 1) $display("[Data] Write back to L2");
                     $display("[Data] Read from L2 by Address: %h", address);
                   end
                   // Update stored tag
@@ -249,7 +249,10 @@ module split_L1_cache ();
                   // Report HIT to monitor
                   hitCount = hitCount + 1.0;
                   if (MODE == 1) begin
-                    $display("[Data] Write through to L2 by address %h", address);
+                    // Write-back
+                    if (D_Dirty[index][i] == 1) begin
+                      $display("[Data] Write back to L2");
+                    end else $display("[Data] Write through to L2 by Address: %h", address);
                   end
                   D_LRU_replacement();
                   DONE = 1;
@@ -262,7 +265,7 @@ module split_L1_cache ();
                 missCount = missCount + 1;
                 if (MODE == 1) begin
                   $display("[Data] Read from L2 by Address: %h", address);
-                  $display("[Data] Write through to L2 by address %h", address);
+                  $display("[Data] Write through to L2 by Address: %h", address);
                 end
                 // Update stored tag
                 D_Tag[index][i] = tag;
@@ -287,9 +290,11 @@ module split_L1_cache ();
                 if (D_LRUBits[index][i] == 3) begin
                   // Pull from memory and overwrite the evicted line
                   if (MODE == 1) begin
-                    // Evict 
+                    // Write-back
                     if (D_Dirty[index][i] == 1) $display("[Data] Write back to L2");
                     $display("[Data] Read from L2 by Address: %h", address);
+                    if (D_Dirty[index][i] == 0)
+                      $display("[Data] Write through to L2 by Address: %h", address);
                   end
 
                   // Update stored tag
@@ -395,19 +400,20 @@ module split_L1_cache ();
   task D_LRU_replacement;
     begin
       for (j = 0; j < D_WAYS; j = j + 1) begin
-        if (D_LRUBits[index][j] < D_LRUBits[index][i])
+        if (D_LRUBits[index][j] <= D_LRUBits[index][i] || i != j)
           D_LRUBits[index][j] = D_LRUBits[index][j] + 1;
-        else if (j == i) D_LRUBits[index][j] = 2'b00;
       end
+      D_LRUBits[index][i] = 2'b00;
     end
   endtask
+
   task I_LRU_replacement;
     begin
       for (j = 0; j < I_WAYS; j = j + 1) begin
-        if (I_LRUBits[index][j] < I_LRUBits[index][i])
+        if (I_LRUBits[index][j] <= I_LRUBits[index][i] || i != j)
           I_LRUBits[index][j] = I_LRUBits[index][j] + 1;
-        else if (j == 1) I_LRUBits[index][j] = 1'b0;
       end
+      I_LRUBits[index][i] = 1'b0;
     end
   endtask
 
