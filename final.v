@@ -12,7 +12,7 @@ module split_L1_cache ();
   // File I/O parameters
 
   real hitRate;
-  real hitCount = 0.0;
+  real hitCount = 0;
   integer missCount = 0;
   integer matchedNums;  // Store the number of matches from fscanf
   integer cacheReferences = 0;  // Number of times the cache is refered
@@ -43,9 +43,6 @@ module split_L1_cache ();
   reg I_LRUBits[0:SETS-1][0:I_WAYS-1];
   reg [1:0] D_LRUBits[0:SETS-1][0:D_WAYS-1];
 
-  // Temporary address
-  reg [ADDRESS_WIDTH-1:0] tempAddress;
-
   reg DONE;
 
   // Intergers for the "for" loops
@@ -59,52 +56,56 @@ module split_L1_cache ();
       MODE
   );
 
-  initial begin : file_block
+  initial begin : main_block
+    // If file open error, stop the block
+    if (file == 0) disable main_block;
     // Init values
     initialize();
-    // If file open error, stop the block
-    if (file == 0) disable file_block;
     // Read until the end of the file
     while (!$feof(
         file
     )) begin
-      // Read the first character each line for operation
+      // Read the first character of each line
       temp = $fscanf(file, "%s ", N);
-      N = N - 48;  // The actual number from the character
+      N = N - 48;  // The actual number value
+
       case (N)
         // Read data from L1 data cache
         0: begin
           request_setup();
           cacheReads = cacheReads + 1;
-          set(N, tag, index, byteSelect);
+          set(N, tag, index, byteSelect, address);
         end
         // Write data to L1 data cache
         1: begin
           request_setup();
           cacheWrites = cacheWrites + 1;
-          set(N, tag, index, byteSelect);
+          set(N, tag, index, byteSelect, address);
         end
-        // Instruction fetch (read request to L1 instruction cache)
+        // Instruction fetch 
+        // (read request to L1 instruction cache)
         2: begin
           request_setup();
           cacheReads = cacheReads + 1;
-          set(N, tag, index, byteSelect);
+          set(N, tag, index, byteSelect, address);
         end
-        // Evict command from L2 (for L2 evictions and inclusivity)
+        // Evict command from L2 
         3: begin
           request_setup();
-          set(N, tag, index, byteSelect);
+          set(N, tag, index, byteSelect, address);
         end
-        // Clear cache and reset all states and statistics 
+        // Clear & reset all states and statistics 
         8: begin
-          initialize();  // Call the init task to reset stored cache values
+          // Init task to reset stored cache values
+          initialize();
+          totalOperations = totalOperations + 1;
           cacheReferences = 0;
           cacheReads = 0;
           cacheWrites = 0;
           hitCount = 0;
           missCount = 0;
         end
-        // Print contents and states of the cache (allow subsequent trace activity)
+        // Print contents and states of the cache 
         9: begin
           write_out();
           totalOperations = totalOperations + 1;
@@ -114,16 +115,15 @@ module split_L1_cache ();
     end
 
     // Display information when reached end of file
-    $display("Total operations: %16d", totalOperations);
-    $display("Total number of cache reads: %5d", cacheReads);
-    $display("Total number of cache writes: %4d", cacheWrites);
-    $display("Total number of cache hits: %6d", hitCount);
-    $display("Total number of cache miss: %6d", missCount);
-
     if (cacheReferences != 0) hitRate = hitCount / (hitCount + missCount);
     else hitRate = 0.0;
 
-    $display("Hit rate: %f \n", hitRate);
+    $display("Total operations: 16d", totalOperations);
+    $display("Number of cache reads: %9d", cacheReads);
+    $display("Number of cache writes: %8d", cacheWrites);
+    $display("Number of cache hits: %10d", hitCount);
+    $display("Number of cache miss: %10d", missCount);
+    $display("Hit rate: %22f \n", hitRate);
 
     $fclose(file);
   end
@@ -132,8 +132,7 @@ module split_L1_cache ();
   // Task to initilize all the register values
   task initialize;
     begin
-      hitCount = 0.0;
-      // Fill up the data cache
+      // Fill up the instruction cache
       for (i = 0; i < SETS; i = i + 1) begin
         for (j = 0; j < I_WAYS; j = j + 1) begin
           I_Valid[i][j] = 0;
@@ -141,13 +140,14 @@ module split_L1_cache ();
           I_LRUBits[i][j] = 0;
           I_Dirty[i][j] = 0;
         end
+        // Fill up the data cache
         for (j = 0; j < D_WAYS; j = j + 1) begin
           D_Valid[i][j] = 0;
           D_Tag[i][j] = {12{1'b0}};
           D_LRUBits[i][j] = 0;
           D_Dirty[i][j] = 0;
         end
-        DONE = 1'b0;
+        DONE = 0;
       end
     end
   endtask
@@ -174,6 +174,7 @@ module split_L1_cache ();
     input [TAG_WIDTH-1:0] tag;
     input [INDEX_WIDTH-1:0] index;
     input [BYTE_SELECT_WIDTH-1:0] byteSelect;
+    input [ADDRESS_WIDTH-1:0] address;
 
     begin
       case (N)
@@ -186,23 +187,20 @@ module split_L1_cache ();
               if (D_Valid[index][i] == 1) begin
                 // If the tag is matched
                 if (D_Tag[index][i] == tag) begin
-
                   // Report to monitor
                   hitCount = hitCount + 1.0;
                   // Adjust LRU bits
                   D_LRU_replacement();
                   DONE = 1;
                 end  // Else, proceed to next block
-              end  // compulsory miss (nothing exist in the block)
+              end  // Compulsory miss 
               else begin
-
                 // Report MISS to monitor
                 missCount = missCount + 1;
                 // Update the tag field
                 D_Tag[index][i] = tag;
                 // Send data request to L2 cache
-                tempAddress = {tag, index, byteSelect};
-                if (MODE == 1) $display("[Data] Read from L2 by Address: %h", tempAddress);
+                if (MODE == 1) $display("[Data] Read from L2 by Address: %h", address);
                 //Adjust LRU bits
                 D_LRU_replacement();
                 D_Valid[index][i] = 1;
@@ -211,7 +209,7 @@ module split_L1_cache ();
             end
           end
 
-          // End of for loop indicate MISS (tag field)
+          // End of for loop indicate Capacity miss
           if (DONE == 0) begin
             // Report MISS to monitor
             missCount = missCount + 1;
@@ -223,10 +221,8 @@ module split_L1_cache ();
                   // Evict 
                   if (D_Dirty[index][i] == 1) $display("[Data] Write back to L2");
                   // Send data request to L2 cache
-                  tempAddress = {tag, index, byteSelect};
                   if (MODE == 1) begin
-                    // $display("[Data] Write back to L2");
-                    $display("[Data] Read from L2 by Address: %h", tempAddress);
+                    $display("[Data] Read from L2 by Address: %h", address);
                   end
                   // Update stored tag
                   D_Tag[index][i] = tag;
@@ -252,24 +248,21 @@ module split_L1_cache ();
                 if (D_Tag[index][i] == tag) begin
                   // Report HIT to monitor
                   hitCount = hitCount + 1.0;
-
                   if (MODE == 1) begin
-                    $display("[Data] Write through to L2 by address %h", tempAddress);
+                    $display("[Data] Write through to L2 by address %h", address);
                   end
-
                   D_LRU_replacement();
                   DONE = 1;
                   // Update dirty bit
                   D_Dirty[index][i] = 1;
                 end
-              end  // Compulsory MISS (Nothing exist in the block)
+              end  // Compulsory miss
               else begin
                 // Report MISS to monitor 
-                missCount   = missCount + 1;
-                tempAddress = {tag, index, byteSelect};
+                missCount = missCount + 1;
                 if (MODE == 1) begin
-                  $display("[Data] Read from L2 by Address: %h", tempAddress);
-                  $display("[Data] Write through to L2 by address %h", tempAddress);
+                  $display("[Data] Read from L2 by Address: %h", address);
+                  $display("[Data] Write through to L2 by address %h", address);
                 end
                 // Update stored tag
                 D_Tag[index][i] = tag;
@@ -283,7 +276,7 @@ module split_L1_cache ();
             end
           end
 
-          // End of for loop indicate MISS (tag field)
+          // End of for loop indicate Capacity miss
           if (DONE == 0) begin
             // Report MISS to monitor
             missCount = missCount + 1;
@@ -293,11 +286,10 @@ module split_L1_cache ();
                 // Check for the least recently used block
                 if (D_LRUBits[index][i] == 3) begin
                   // Pull from memory and overwrite the evicted line
-                  tempAddress = {tag, index, byteSelect};
                   if (MODE == 1) begin
                     // Evict 
                     if (D_Dirty[index][i] == 1) $display("[Data] Write back to L2");
-                    $display("[Data] Read from L2 by Address: %h", tempAddress);
+                    $display("[Data] Read from L2 by Address: %h", address);
                   end
 
                   // Update stored tag
@@ -330,11 +322,10 @@ module split_L1_cache ();
                   I_LRU_replacement();
                   DONE = 1;
                 end
-              end  // compulsory miss (nothing exist in the block)
-            else begin
+              end  // compulsory miss 
+              else begin
                 // Read from L2 cache
-                tempAddress = {tag, index, byteSelect};
-                if (MODE == 1) $display("[Instruction] Read from L2 by Address: %h", tempAddress);
+                if (MODE == 1) $display("[Instruction] Read from L2 by Address: %h", address);
                 //Report MISS to monitor
                 missCount = missCount + 1;
                 // Update stored tag
@@ -346,7 +337,7 @@ module split_L1_cache ();
               end
             end
           end
-          // End of for loop indicate MISS (tag field)
+          // End of for loop indicate Capacity miss
           if (DONE == 0) begin
             // Report MISS to monitor
             missCount = missCount + 1;
@@ -357,9 +348,8 @@ module split_L1_cache ();
                 if (I_LRUBits[index][i] == 1) begin
 
                   // Send data request to L2 cache
-                  tempAddress = {tag, index, byteSelect};
                   if (MODE == 1) begin
-                    $display("[Instruction] Read from L2 by Address: %h", tempAddress);
+                    $display("[Instruction] Read from L2 by Address: %h", address);
                   end
 
                   // Update stored tag
@@ -405,22 +395,19 @@ module split_L1_cache ();
   task D_LRU_replacement;
     begin
       for (j = 0; j < D_WAYS; j = j + 1) begin
-        if (j == i) D_LRUBits[index][j] = D_LRUBits[index][i];
-        else if (D_LRUBits[index][j] <= D_LRUBits[index][i])
+        if (D_LRUBits[index][j] < D_LRUBits[index][i])
           D_LRUBits[index][j] = D_LRUBits[index][j] + 1;
+        else if (j == i) D_LRUBits[index][j] = 2'b00;
       end
-      D_LRUBits[index][i] = 2'b00;
     end
   endtask
-
   task I_LRU_replacement;
     begin
       for (j = 0; j < I_WAYS; j = j + 1) begin
-        if (j == 1) I_LRUBits[index][j] = I_LRUBits[index][i];
-        else if (I_LRUBits[index][j] <= I_LRUBits[index][i])
+        if (I_LRUBits[index][j] < I_LRUBits[index][i])
           I_LRUBits[index][j] = I_LRUBits[index][j] + 1;
+        else if (j == 1) I_LRUBits[index][j] = 1'b0;
       end
-      I_LRUBits[index][i] = 1'b0;
     end
   endtask
 
@@ -430,11 +417,11 @@ module split_L1_cache ();
     begin
       // For data cache
       $display("\n------------- Data cache -------------");
-      $display("WAYS     D_Tag    D_LRU");
+      $display("WAYS   D_Dirty   D_Tag    D_LRU");
       for (i = 0; i < SETS; i = i + 1) begin
         for (j = 0; j < D_WAYS; j = j + 1) begin
           if (D_Valid[i][j] == 1) begin
-            $display("%-8d %-8h %b ", D_WAYS, D_Tag[i][j], D_LRUBits[i][j]);
+            $display("%-6d %-9b %-8h %b ", D_WAYS, D_Dirty[i][j], D_Tag[i][j], D_LRUBits[i][j]);
           end
         end
       end
@@ -442,11 +429,11 @@ module split_L1_cache ();
 
       // For instruction cache
       $display("\n------------- Instruction cache -------------");
-      $display("WAYS     I_Tag    I_LRU");
+      $display("WAYS   I_Dirty   I_Tag    I_LRU");
       for (i = 0; i < SETS; i = i + 1) begin
         for (j = 0; j < I_WAYS; j = j + 1) begin
           if (I_Valid[i][j] == 1) begin
-            $display("%-8d %-8h %b ", I_WAYS, I_Tag[i][j], I_LRUBits[i][j]);
+            $display("%-6d %-9b %-8h %b ", I_WAYS, I_Dirty[i][j], I_Tag[i][j], I_LRUBits[i][j]);
           end
         end
       end
